@@ -52,23 +52,6 @@ The dashed line marks the data-derived speeder threshold used in the audit.
 
 This figure compares the number of responses identified by each QC rule.
 
-## Ground-truth evaluation
-
-The simulation ground truth was loaded only after the QC rules had been applied. It was not used to construct or tune the rules.
-
-| Metric | Result |
-|---|---:|
-| True positives | 260 |
-| False positives | 12 |
-| False negatives | 0 |
-| True negatives | 978 |
-| Precision | 0.956 |
-| Recall | 1.000 |
-| Specificity | 0.988 |
-| Accuracy | 0.990 |
-
-These metrics show how closely the transparent audit rules recover the deliberately injected quality problems in the simulated data. False positives are possible because some legitimate responses can naturally look suspicious, so individual behavioural signals should not automatically be treated as proof of poor quality.
-
 ## Outputs
 
 Running `python analysis.py` creates or replaces the following files:
@@ -76,7 +59,6 @@ Running `python analysis.py` creates or replaces the following files:
 - `report.md` — this report.
 - `outputs/quality_flags.csv` — respondent-level QC indicators and recommendations.
 - `outputs/quality_summary.csv` — summary counts and thresholds.
-- `outputs/ground_truth_evaluation.csv` — validation metrics when the simulation ground-truth file is available.
 - `figures/completion_duration_distribution.png` — completion-time distribution.
 - `figures/quality_flag_counts.png` — counts for each QC flag.
 
@@ -90,5 +72,7 @@ python analysis.py
 ```
 
 Before the analysis starts, the script fetches the remote repository and checks whether the local Codespace is behind its remote branch. If it is behind, the script stops without replacing any analysis outputs and asks you to run `git pull --ff-only` first.
+
+After a successful run, `report.md`, `outputs/`, and `figures/` are committed and pushed to the current GitHub branch automatically. Unrelated local changes are not included in the automatic commit.
 
 `report.md` is deliberately overwritten on every successful run so the repository contains one current report rather than a series of duplicate report files.
