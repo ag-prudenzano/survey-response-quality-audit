@@ -156,6 +156,37 @@ def check_repository_up_to_date() -> None:
     print(f"Repository is up to date with {remote_ref}.")
 
 
+def save_generated_files_to_repository() -> None:
+    generated_paths = ["report.md", "outputs", "figures"]
+    run_git("add", "--", *generated_paths)
+
+    staged = subprocess.run(
+        ["git", "diff", "--cached", "--quiet", "--", *generated_paths],
+        cwd=ROOT,
+    ).returncode
+
+    if staged == 0:
+        print("No generated changes to commit.")
+        return
+    if staged != 1:
+        raise SystemExit("Could not determine whether generated files changed.")
+
+    run_git(
+        "commit",
+        "-m",
+        "Update survey response quality audit results",
+        "--",
+        *generated_paths,
+    )
+
+    branch = run_git("branch", "--show-current").stdout.strip()
+    if not branch:
+        raise SystemExit("Cannot automatically push from a detached Git HEAD.")
+
+    run_git("push", "origin", branch)
+    print(f"Generated files committed and pushed to origin/{branch}.")
+
+
 def load_raw_data() -> pd.DataFrame:
     if not RAW_FILE.exists():
         raise FileNotFoundError(
@@ -618,6 +649,8 @@ python analysis.py
 
 Before the analysis starts, the script fetches the remote repository and checks whether the local Codespace is behind its remote branch. If it is behind, the script stops without replacing any analysis outputs and asks you to run `git pull --ff-only` first.
 
+After a successful run, `report.md`, `outputs/`, and `figures/` are committed and pushed to the current GitHub branch automatically. Unrelated local changes are not included in the automatic commit.
+
 `report.md` is deliberately overwritten on every successful run so the repository contains one current report rather than a series of duplicate report files.
 """
 
@@ -663,6 +696,8 @@ def main() -> None:
         print("\nGround-truth evaluation")
         for _, row in evaluation.iterrows():
             print(f"{row['metric']}: {row['value']}")
+
+    save_generated_files_to_repository()
 
 
 if __name__ == "__main__":
