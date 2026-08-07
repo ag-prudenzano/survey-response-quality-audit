@@ -1,0 +1,11 @@
+﻿Scenario,Hypothetical online survey about restaurant delivery usage and experience in the UK.
+Fictional services,"QuickBite, MealDash and FoodGo are fictional names used only for this simulated case study."
+Target population,Adults aged 18-74 who have ordered restaurant delivery within the past 3 months.
+Fieldwork period,6-20 July 2026.
+Captured responses,1250
+Completed responses,1200
+Partial responses,50
+Intended use,Portfolio case study for survey response quality auditing in Python.
+Primary audit signals available,"Completion, duration, page-level timing, attention check, straight-lining, logical consistency, duplicate-like metadata, range validation and open-text quality."
+Important,The raw-data sheet contains no QC labels. Use the Ground Truth sheet only after developing your own audit rules if you want to evaluate them.
+Random seed,20260807

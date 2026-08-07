@@ -1,0 +1,51 @@
+﻿Variable,Type,Description,Values / Notes
+response_id,string,Unique survey response identifier,R00001 etc.
+panelist_id,string,Simulated panel member identifier,P######
+survey_status,categorical,Response completion status,Complete; Partial
+progress_pct,integer,Percent of questionnaire reached,0-100
+start_time_bst,datetime text,Survey start timestamp in British Summer Time,ISO 8601
+end_time_bst,datetime text,Survey end timestamp in British Summer Time,ISO 8601
+duration_sec,integer,Total recorded survey duration in seconds,>=0
+device_type,categorical,Device used to complete survey,Mobile; Desktop; Tablet
+browser_family,categorical,Browser family,Chrome; Safari; Edge; Firefox; Other
+traffic_source,categorical,Simulated research panel source,Panel A; Panel B; Panel C
+ip_hash,string,Anonymised simulated IP identifier,Hashed token
+browser_fingerprint,string,Anonymised simulated browser/device fingerprint,Hashed token
+age,integer,Respondent age,Target eligibility: 18-74
+age_band,categorical,Reported age band,18-24 through 65-74
+gender,categorical,Gender,Woman; Man; Non-binary; Prefer not to say
+region,categorical,UK region,12 UK regions/nations
+urbanicity,categorical,Area type,Urban; Suburban; Rural
+employment_status,categorical,Employment status,6 categories
+household_income,categorical,Annual household income band,7 categories
+children_u18,categorical,Children under 18 in household,Yes; No
+s1_ordered_delivery_3m,categorical,Screener: ordered restaurant delivery in past 3 months,Yes; No
+q1_orders_past_30d,categorical,Number of restaurant delivery orders in past 30 days,0; 1; 2-3; 4-5; 6-9; 10+
+q2_last_order,categorical,Recency of last delivery order,Today; Past week; 8-30 days ago; 31-90 days ago; More than 3 months ago
+q3_primary_service,categorical,Service used most often,QuickBite; MealDash; FoodGo; Restaurant direct; Other
+q4_overall_satisfaction,integer,Overall satisfaction,"1=Very dissatisfied, 7=Very satisfied"
+q5_likelihood_reorder,integer,Likelihood to order again,"1=Very unlikely, 7=Very likely"
+q6_nps,integer,Likelihood to recommend / NPS-style item,0-10
+q7_delivery_speed,integer,Rating: delivery speed,"1=Very poor, 7=Excellent"
+q7_order_accuracy,integer,Rating: order accuracy,"1=Very poor, 7=Excellent"
+q7_food_quality,integer,Rating: food quality on arrival,"1=Very poor, 7=Excellent"
+q7_value_for_money,integer,Rating: value for money,"1=Very poor, 7=Excellent"
+q7_app_ease,integer,Rating: ease of using app/site,"1=Very poor, 7=Excellent"
+q7_service_selection,integer,Rating: restaurant/service selection,"1=Very poor, 7=Excellent"
+q7_customer_support,integer,Rating: customer support,"1=Very poor, 7=Excellent"
+q7_promotions,integer,Rating: promotions/offers,"1=Very poor, 7=Excellent"
+q8_attention_check,integer,"Instructional attention check: 'For quality purposes, please select 3'",Expected value: 3
+q9_delivery_fee_reasonableness,integer,Perceived reasonableness of delivery fee,"1=Very unreasonable, 7=Very reasonable"
+q10_last_order_spend_gbp,decimal,Approximate spend on most recent order,GBP
+q11_problem_last_order,categorical,Experienced a problem with most recent order,Yes; No
+q12_problem_type,categorical,Main problem type,Routed from q11=Yes; blank otherwise
+q13_contacted_support,categorical,Contacted support about the problem,Routed from q11=Yes; blank otherwise
+q14_support_resolution,integer,Satisfaction with problem resolution,1-7; routed from q13=Yes
+q15_subscription_member,categorical,Member of a paid delivery subscription,Yes; No
+q16_open_end,text,Open-ended improvement suggestion,Free text
+page_screener_sec,decimal,Time spent on screener page,Seconds
+page_usage_sec,decimal,Time spent on usage page,Seconds
+page_experience_sec,decimal,Time spent on experience page,Seconds
+page_grid_sec,decimal,Time spent on 8-item rating grid,Seconds
+page_demographics_sec,decimal,Time spent on demographics page,Seconds
+page_open_end_sec,decimal,Time spent on open-ended page,Seconds
