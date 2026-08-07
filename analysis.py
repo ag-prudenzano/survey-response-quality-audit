@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from pathlib import Path
 import re
 import subprocess
@@ -20,7 +18,6 @@ DATA_DIR = ROOT / "data"
 OUTPUT_DIR = ROOT / "outputs"
 FIGURE_DIR = ROOT / "figures"
 REPORT_FILE = ROOT / "report.md"
-
 RAW_FILE = DATA_DIR / "survey_response_quality_audit_raw.csv"
 
 GRID_COLUMNS = [
@@ -85,6 +82,13 @@ LOW_QUALITY_OPEN_TEXT = {
     "asdfgh",
 }
 
+FIGURE_BACKGROUND = "#000000"
+FIGURE_TEXT = "#f6f6f6"
+FIGURE_MUTED = "#a3a3a3"
+FIGURE_LINE = "#393939"
+FIGURE_BAR = "#686868"
+FIGURE_ACCENT = "#64d2ff"
+
 
 def run_git(*args: str) -> subprocess.CompletedProcess[str]:
     try:
@@ -115,7 +119,6 @@ def check_repository_up_to_date() -> None:
 
     branch = run_git("branch", "--show-current").stdout.strip()
     remote_ref = f"origin/{branch}" if branch else "origin/main"
-
     remote_exists = subprocess.run(
         ["git", "rev-parse", "--verify", "--quiet", remote_ref],
         cwd=ROOT,
@@ -194,11 +197,9 @@ def load_raw_data() -> pd.DataFrame:
         )
 
     df = pd.read_csv(RAW_FILE)
-
     for column in ["start_time_bst", "end_time_bst"]:
         if column in df.columns:
             df[column] = pd.to_datetime(df[column], errors="coerce", utc=True)
-
     return df
 
 
@@ -258,19 +259,13 @@ def open_text_is_low_quality(value: object) -> bool:
 
     compact = re.sub(r"\s+", "", text)
     letters = re.sub(r"[^a-z]", "", text)
-
-    if len(compact) < 3:
-        return True
-    if not letters:
+    if len(compact) < 3 or not letters:
         return True
     if len(set(letters)) <= 2 and len(letters) >= 5:
         return True
 
     tokens = re.findall(r"[a-z]+", text)
-    if len(tokens) >= 3 and len(set(tokens)) == 1:
-        return True
-
-    return False
+    return len(tokens) >= 3 and len(set(tokens)) == 1
 
 
 def build_quality_flags(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float]]:
@@ -289,12 +284,10 @@ def build_quality_flags(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float
     flags["flag_speeder"] = complete_mask & duration.lt(speeder_threshold)
 
     grid = df[GRID_COLUMNS].apply(pd.to_numeric, errors="coerce")
-    grid_answer_count = grid.notna().sum(axis=1)
-    grid_unique_count = grid.nunique(axis=1, dropna=True)
     flags["flag_straightliner"] = (
         ~flags["flag_partial"]
-        & grid_answer_count.eq(len(GRID_COLUMNS))
-        & grid_unique_count.eq(1)
+        & grid.notna().sum(axis=1).eq(len(GRID_COLUMNS))
+        & grid.nunique(axis=1, dropna=True).eq(1)
     )
 
     attention = pd.to_numeric(df["q8_attention_check"], errors="coerce")
@@ -304,7 +297,6 @@ def build_quality_flags(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float
 
     age = pd.to_numeric(df["age"], errors="coerce")
     nps = pd.to_numeric(df["q6_nps"], errors="coerce")
-
     rating_invalid = pd.Series(False, index=df.index)
     for column in RATING_1_TO_7_COLUMNS:
         values = pd.to_numeric(df[column], errors="coerce")
@@ -318,17 +310,14 @@ def build_quality_flags(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float
 
     expected_age_band = age.map(age_band_from_age)
     age_band_mismatch = expected_age_band.notna() & df["age_band"].ne(expected_age_band)
-
     screener_recency_conflict = (
         df["s1_ordered_delivery_3m"].eq("Yes")
         & df["q2_last_order"].eq("More than 3 months ago")
     )
-
     zero_orders_recent_order = (
         df["q1_orders_past_30d"].astype(str).eq("0")
         & df["q2_last_order"].isin(["Today", "Past week"])
     )
-
     problem_no_but_routed_answer = (
         df["q11_problem_last_order"].eq("No")
         & (
@@ -337,12 +326,10 @@ def build_quality_flags(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float
             | df["q14_support_resolution"].notna()
         )
     )
-
     support_contact_conflict = (
         df["q13_contacted_support"].eq("Yes")
         & ~df["q11_problem_last_order"].eq("Yes")
     )
-
     resolution_without_contact = (
         df["q14_support_resolution"].notna()
         & ~df["q13_contacted_support"].eq("Yes")
@@ -357,12 +344,8 @@ def build_quality_flags(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float
         | resolution_without_contact
     )
 
-    duplicate_frame = df[SUBSTANTIVE_DUPLICATE_COLUMNS].copy()
-    duplicate_frame = duplicate_frame.fillna("<MISSING>").astype(str)
-    answer_signature = pd.util.hash_pandas_object(
-        duplicate_frame, index=False
-    ).astype(str)
-
+    duplicate_frame = df[SUBSTANTIVE_DUPLICATE_COLUMNS].fillna("<MISSING>").astype(str)
+    answer_signature = pd.util.hash_pandas_object(duplicate_frame, index=False).astype(str)
     duplicate_key = (
         df["browser_fingerprint"].fillna("<MISSING>").astype(str)
         + "|"
@@ -376,8 +359,7 @@ def build_quality_flags(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float
             "row_number": np.arange(len(df)),
         },
         index=df.index,
-    )
-    ordering = ordering.sort_values(["key", "start", "row_number"], na_position="last")
+    ).sort_values(["key", "start", "row_number"], na_position="last")
     ordering["rank_within_key"] = ordering.groupby("key").cumcount()
     flags["flag_duplicate_like"] = ordering["rank_within_key"].reindex(df.index).gt(0)
 
@@ -395,7 +377,6 @@ def build_quality_flags(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float
         "flag_duplicate_like",
         "flag_low_quality_open_text",
     ]
-
     flags["total_flags"] = flags[flag_columns].sum(axis=1).astype(int)
     flags["qc_flagged"] = flags["total_flags"].gt(0)
 
@@ -415,18 +396,15 @@ def build_quality_flags(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float
     flags["recommended_exclude"] = hard_fail | flags["behavioural_flag_count"].ge(2)
     flags["recommended_review"] = flags["qc_flagged"] & ~flags["recommended_exclude"]
 
-    thresholds = {
+    return flags, {
         "median_complete_duration_sec": median_complete_duration,
         "speeder_threshold_sec": speeder_threshold,
     }
-    return flags, thresholds
 
 
 def create_quality_summary(
     df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, float]
 ) -> pd.DataFrame:
-    flag_columns = [c for c in flags.columns if c.startswith("flag_")]
-
     rows = [
         {"metric": "Total responses", "value": len(df)},
         {"metric": "Completed responses", "value": int((df["survey_status"] == "Complete").sum())},
@@ -437,46 +415,109 @@ def create_quality_summary(
         {"metric": "Speeder threshold (sec)", "value": round(thresholds["speeder_threshold_sec"], 1)},
     ]
 
-    for column in flag_columns:
+    for column in [c for c in flags.columns if c.startswith("flag_")]:
         label = column.removeprefix("flag_").replace("_", " ").title()
         rows.append({"metric": f"Flag: {label}", "value": int(flags[column].sum())})
 
     return pd.DataFrame(rows)
 
 
+def style_figure_axis(ax: plt.Axes, grid_axis: str) -> None:
+    ax.figure.patch.set_facecolor(FIGURE_BACKGROUND)
+    ax.set_facecolor(FIGURE_BACKGROUND)
+    ax.tick_params(colors=FIGURE_MUTED, labelsize=9.5, length=0, pad=7)
+    ax.xaxis.label.set_color(FIGURE_MUTED)
+    ax.yaxis.label.set_color(FIGURE_MUTED)
+    ax.title.set_color(FIGURE_TEXT)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.grid(axis=grid_axis, color=FIGURE_LINE, linewidth=0.8, alpha=0.6)
+    ax.set_axisbelow(True)
+
+
 def create_figures(df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, float]) -> None:
     FIGURE_DIR.mkdir(parents=True, exist_ok=True)
 
-    duration = pd.to_numeric(df["duration_sec"], errors="coerce")
-    completed = duration[df["survey_status"].eq("Complete")].dropna()
+    with plt.rc_context({"font.family": "sans-serif", "font.size": 10}):
+        duration = pd.to_numeric(df["duration_sec"], errors="coerce")
+        completed = duration[df["survey_status"].eq("Complete")].dropna()
 
-    fig, ax = plt.subplots(figsize=(8, 5))
-    ax.hist(completed, bins=35)
-    ax.axvline(
-        thresholds["speeder_threshold_sec"],
-        linestyle="--",
-        linewidth=1.5,
-        label=f"Speeder threshold: {thresholds['speeder_threshold_sec']:.0f}s",
-    )
-    ax.set_title("Survey completion duration")
-    ax.set_xlabel("Duration (seconds)")
-    ax.set_ylabel("Number of completed responses")
-    ax.legend()
-    fig.tight_layout()
-    fig.savefig(FIGURE_DIR / "completion_duration_distribution.png", dpi=180)
-    plt.close(fig)
+        fig, ax = plt.subplots(figsize=(9.6, 5.6))
+        style_figure_axis(ax, "y")
+        ax.hist(
+            completed,
+            bins=35,
+            color=FIGURE_BAR,
+            edgecolor=FIGURE_BACKGROUND,
+            linewidth=0.7,
+        )
+        ax.axvline(
+            thresholds["speeder_threshold_sec"],
+            color=FIGURE_ACCENT,
+            linestyle=(0, (4, 4)),
+            linewidth=1.6,
+            label=f"Speeder threshold  {thresholds['speeder_threshold_sec']:.1f}s",
+        )
+        ax.set_title(
+            "Survey completion duration",
+            loc="left",
+            pad=18,
+            fontsize=16,
+            fontweight=500,
+        )
+        ax.set_xlabel("Duration (seconds)", labelpad=12)
+        ax.set_ylabel("Completed responses", labelpad=12)
+        legend = ax.legend(frameon=False, loc="upper right", fontsize=9.5)
+        for text in legend.get_texts():
+            text.set_color(FIGURE_MUTED)
+        fig.tight_layout(pad=1.6)
+        fig.savefig(
+            FIGURE_DIR / "completion_duration_distribution.png",
+            dpi=200,
+            facecolor=FIGURE_BACKGROUND,
+            bbox_inches="tight",
+        )
+        plt.close(fig)
 
-    flag_columns = [c for c in flags.columns if c.startswith("flag_")]
-    counts = flags[flag_columns].sum().sort_values()
-    labels = [c.removeprefix("flag_").replace("_", " ").title() for c in counts.index]
+        flag_columns = [c for c in flags.columns if c.startswith("flag_")]
+        counts = flags[flag_columns].sum().sort_values()
+        labels = [
+            c.removeprefix("flag_").replace("_", " ").title()
+            for c in counts.index
+        ]
 
-    fig, ax = plt.subplots(figsize=(8, 5))
-    ax.barh(labels, counts.values)
-    ax.set_title("Survey quality flags")
-    ax.set_xlabel("Number of responses flagged")
-    fig.tight_layout()
-    fig.savefig(FIGURE_DIR / "quality_flag_counts.png", dpi=180)
-    plt.close(fig)
+        fig, ax = plt.subplots(figsize=(9.6, 5.6))
+        style_figure_axis(ax, "x")
+        bars = ax.barh(labels, counts.values, height=0.58, color=FIGURE_BAR)
+        maximum = max(float(counts.max()), 1.0)
+        ax.set_xlim(0, maximum * 1.16)
+        ax.set_title(
+            "Survey quality flags",
+            loc="left",
+            pad=18,
+            fontsize=16,
+            fontweight=500,
+        )
+        ax.set_xlabel("Responses flagged", labelpad=12)
+        ax.set_ylabel("")
+        for bar, value in zip(bars, counts.values):
+            ax.text(
+                bar.get_width() + maximum * 0.025,
+                bar.get_y() + bar.get_height() / 2,
+                f"{int(value):,}",
+                va="center",
+                ha="left",
+                color=FIGURE_TEXT,
+                fontsize=9.5,
+            )
+        fig.tight_layout(pad=1.6)
+        fig.savefig(
+            FIGURE_DIR / "quality_flag_counts.png",
+            dpi=200,
+            facecolor=FIGURE_BACKGROUND,
+            bbox_inches="tight",
+        )
+        plt.close(fig)
 
 
 def generate_report(
@@ -491,9 +532,8 @@ def generate_report(
     review = int(flags["recommended_review"].sum())
     exclude = int(flags["recommended_exclude"].sum())
 
-    flag_columns = [c for c in flags.columns if c.startswith("flag_")]
     flag_rows = []
-    for column in flag_columns:
+    for column in [c for c in flags.columns if c.startswith("flag_")]:
         label = column.removeprefix("flag_").replace("_", " ").title()
         count = int(flags[column].sum())
         percentage = (count / total * 100) if total else 0.0
@@ -581,13 +621,11 @@ def main() -> None:
 
     df = load_raw_data()
     validate_required_columns(df)
-
     flags, thresholds = build_quality_flags(df)
     summary = create_quality_summary(df, flags, thresholds)
 
     flags.to_csv(OUTPUT_DIR / "quality_flags.csv", index=False)
     summary.to_csv(OUTPUT_DIR / "quality_summary.csv", index=False)
-
     create_figures(df, flags, thresholds)
     generate_report(df, flags, thresholds)
 
