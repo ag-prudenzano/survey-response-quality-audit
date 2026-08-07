@@ -11,7 +11,8 @@ Run from the repository root with:
 
     python analysis.py
 
-Outputs are written to ./outputs and figures to ./figures.
+Each run replaces ./report.md with an up-to-date Markdown report. Supporting
+CSV outputs are written to ./outputs and figures to ./figures.
 """
 
 from __future__ import annotations
@@ -26,7 +27,7 @@ try:
 except ImportError as exc:
     raise SystemExit(
         "Missing Python packages. Install pandas, numpy and matplotlib, then run "
-        "the script again. Example: pip install pandas numpy matplotlib"
+        "the script again. Example: pip install -r requirements.txt"
     ) from exc
 
 
@@ -34,6 +35,7 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 OUTPUT_DIR = ROOT / "outputs"
 FIGURE_DIR = ROOT / "figures"
+REPORT_FILE = ROOT / "report.md"
 
 RAW_FILE = DATA_DIR / "survey_response_quality_audit_raw.csv"
 GROUND_TRUTH_FILE = DATA_DIR / "survey_response_quality_audit_simulation_ground_truth.csv"
@@ -468,6 +470,140 @@ def create_figures(df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, 
     plt.close(fig)
 
 
+def metric_value(table: pd.DataFrame | None, metric: str) -> object | None:
+    """Return one metric value from a two-column metric/value table."""
+    if table is None or table.empty:
+        return None
+    match = table.loc[table["metric"].eq(metric), "value"]
+    return match.iloc[0] if not match.empty else None
+
+
+def generate_report(
+    df: pd.DataFrame,
+    flags: pd.DataFrame,
+    summary: pd.DataFrame,
+    thresholds: dict[str, float],
+    evaluation: pd.DataFrame | None,
+) -> None:
+    """Write the portfolio report to report.md, replacing any existing file."""
+    total = len(df)
+    completed = int((df["survey_status"] == "Complete").sum())
+    partial = int(flags["flag_partial"].sum())
+    flagged = int(flags["qc_flagged"].sum())
+    review = int(flags["recommended_review"].sum())
+    exclude = int(flags["recommended_exclude"].sum())
+
+    flag_columns = [c for c in flags.columns if c.startswith("flag_")]
+    flag_rows = []
+    for column in flag_columns:
+        label = column.removeprefix("flag_").replace("_", " ").title()
+        count = int(flags[column].sum())
+        percentage = (count / total * 100) if total else 0.0
+        flag_rows.append(f"| {label} | {count:,} | {percentage:.1f}% |")
+
+    evaluation_section = ""
+    if evaluation is not None:
+        precision = metric_value(evaluation, "Precision")
+        recall = metric_value(evaluation, "Recall")
+        specificity = metric_value(evaluation, "Specificity")
+        accuracy = metric_value(evaluation, "Accuracy")
+        tp = metric_value(evaluation, "True positives")
+        fp = metric_value(evaluation, "False positives")
+        fn = metric_value(evaluation, "False negatives")
+        tn = metric_value(evaluation, "True negatives")
+
+        evaluation_section = f"""
+## Ground-truth evaluation
+
+The simulation ground truth was loaded only after the QC rules had been applied. It was not used to construct or tune the rules.
+
+| Metric | Result |
+|---|---:|
+| True positives | {int(tp):,} |
+| False positives | {int(fp):,} |
+| False negatives | {int(fn):,} |
+| True negatives | {int(tn):,} |
+| Precision | {float(precision):.3f} |
+| Recall | {float(recall):.3f} |
+| Specificity | {float(specificity):.3f} |
+| Accuracy | {float(accuracy):.3f} |
+
+These metrics show how closely the transparent audit rules recover the deliberately injected quality problems in the simulated data. False positives are possible because some legitimate responses can naturally look suspicious, so individual behavioural signals should not automatically be treated as proof of poor quality.
+"""
+
+    report = f"""# Survey Response Quality Audit
+
+## Overview
+
+This simulated case study audits an online survey dataset for common response-quality problems. The analysis uses transparent, reproducible Python rules to identify incomplete responses, unusually fast completions, straight-lining, failed attention checks, invalid values, logical inconsistencies, duplicate-like submissions, and low-quality open-ended text.
+
+The raw dataset contains **{total:,} responses**, including **{completed:,} completed responses** and **{partial:,} partial responses**.
+
+## Approach
+
+The audit applies eight respondent-level quality checks:
+
+1. **Partial responses** — responses not marked complete or with progress below 100%.
+2. **Speeding** — completed surveys below one-third of the median completed survey duration.
+3. **Straight-lining** — the same answer across all eight items in the main 1–7 rating grid.
+4. **Attention-check failure** — a response other than the instructed value of 3.
+5. **Invalid values** — ages, NPS scores, or 1–7 ratings outside their permitted ranges.
+6. **Logical inconsistencies** — contradictions between eligibility, recency, routing, and related answers.
+7. **Duplicate-like submissions** — repeated browser fingerprints combined with identical substantive answer patterns.
+8. **Low-quality open text** — blank, nonsensical, extremely short, numeric-only, or repetitive responses.
+
+The median duration among completed responses was **{thresholds['median_complete_duration_sec']:.1f} seconds**. The resulting speeder threshold was **{thresholds['speeder_threshold_sec']:.1f} seconds**.
+
+## Results
+
+**{flagged:,} responses ({(flagged / total * 100 if total else 0):.1f}%)** received at least one QC flag. Of these, **{review:,}** were recommended for manual review and **{exclude:,}** were recommended for exclusion under the pre-specified decision rules.
+
+| QC check | Responses flagged | Share of all responses |
+|---|---:|---:|
+{chr(10).join(flag_rows)}
+
+A single behavioural warning is not treated as sufficient evidence for automatic exclusion. Partial responses, invalid values, and duplicate-like submissions are treated as hard failures; otherwise, at least two behavioural indicators are required for an exclusion recommendation.
+
+## Figures
+
+### Completion duration
+
+![Survey completion duration](figures/completion_duration_distribution.png)
+
+The dashed line marks the data-derived speeder threshold used in the audit.
+
+### Quality flags
+
+![Survey quality flags](figures/quality_flag_counts.png)
+
+This figure compares the number of responses identified by each QC rule.
+{evaluation_section}
+## Outputs
+
+Running `python analysis.py` creates or replaces the following files:
+
+- `report.md` — this report.
+- `outputs/quality_flags.csv` — respondent-level QC indicators and recommendations.
+- `outputs/quality_summary.csv` — summary counts and thresholds.
+- `outputs/ground_truth_evaluation.csv` — validation metrics when the simulation ground-truth file is available.
+- `figures/completion_duration_distribution.png` — completion-time distribution.
+- `figures/quality_flag_counts.png` — counts for each QC flag.
+
+## Reproducibility
+
+The analysis is run from the repository root with:
+
+```bash
+pip install -r requirements.txt
+python analysis.py
+```
+
+`report.md` is deliberately overwritten on every run so the repository contains one current report rather than a series of duplicate report files.
+"""
+
+    REPORT_FILE.write_text(report.strip() + "\n", encoding="utf-8")
+
+
 def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -485,6 +621,7 @@ def main() -> None:
         evaluation.to_csv(OUTPUT_DIR / "ground_truth_evaluation.csv", index=False)
 
     create_figures(df, flags, thresholds)
+    generate_report(df, flags, summary, thresholds, evaluation)
 
     print("Survey Response Quality Audit")
     print("=" * 34)
@@ -497,7 +634,8 @@ def main() -> None:
     print(f"Responses with at least one QC flag: {int(flags['qc_flagged'].sum()):,}")
     print(f"Recommended for review: {int(flags['recommended_review'].sum()):,}")
     print(f"Recommended for exclusion: {int(flags['recommended_exclude'].sum()):,}")
-    print(f"\nOutputs saved to: {OUTPUT_DIR.relative_to(ROOT)}/")
+    print(f"\nReport written to: {REPORT_FILE.relative_to(ROOT)}")
+    print(f"Outputs saved to: {OUTPUT_DIR.relative_to(ROOT)}/")
     print(f"Figures saved to: {FIGURE_DIR.relative_to(ROOT)}/")
 
     if evaluation is not None:
