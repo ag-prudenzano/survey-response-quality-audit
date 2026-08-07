@@ -22,7 +22,6 @@ FIGURE_DIR = ROOT / "figures"
 REPORT_FILE = ROOT / "report.md"
 
 RAW_FILE = DATA_DIR / "survey_response_quality_audit_raw.csv"
-GROUND_TRUTH_FILE = DATA_DIR / "survey_response_quality_audit_simulation_ground_truth.csv"
 
 GRID_COLUMNS = [
     "q7_delivery_speed",
@@ -445,48 +444,6 @@ def create_quality_summary(
     return pd.DataFrame(rows)
 
 
-def evaluate_against_ground_truth(flags: pd.DataFrame) -> pd.DataFrame | None:
-    if not GROUND_TRUTH_FILE.exists():
-        return None
-
-    truth = pd.read_csv(GROUND_TRUTH_FILE)
-    required = {"response_id", "expected_high_quality_complete"}
-    if not required.issubset(truth.columns):
-        return None
-
-    evaluation = flags.merge(
-        truth[["response_id", "expected_high_quality_complete"]],
-        on="response_id",
-        how="inner",
-    )
-
-    actual_issue = evaluation["expected_high_quality_complete"].eq("No")
-    predicted_issue = evaluation["qc_flagged"]
-
-    tp = int((actual_issue & predicted_issue).sum())
-    fp = int((~actual_issue & predicted_issue).sum())
-    fn = int((actual_issue & ~predicted_issue).sum())
-    tn = int((~actual_issue & ~predicted_issue).sum())
-
-    precision = tp / (tp + fp) if (tp + fp) else np.nan
-    recall = tp / (tp + fn) if (tp + fn) else np.nan
-    specificity = tn / (tn + fp) if (tn + fp) else np.nan
-    accuracy = (tp + tn) / (tp + fp + fn + tn) if len(evaluation) else np.nan
-
-    return pd.DataFrame(
-        [
-            {"metric": "True positives", "value": tp},
-            {"metric": "False positives", "value": fp},
-            {"metric": "False negatives", "value": fn},
-            {"metric": "True negatives", "value": tn},
-            {"metric": "Precision", "value": round(precision, 3)},
-            {"metric": "Recall", "value": round(recall, 3)},
-            {"metric": "Specificity", "value": round(specificity, 3)},
-            {"metric": "Accuracy", "value": round(accuracy, 3)},
-        ]
-    )
-
-
 def create_figures(df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, float]) -> None:
     FIGURE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -522,18 +479,10 @@ def create_figures(df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, 
     plt.close(fig)
 
 
-def metric_value(table: pd.DataFrame | None, metric: str) -> object | None:
-    if table is None or table.empty:
-        return None
-    match = table.loc[table["metric"].eq(metric), "value"]
-    return match.iloc[0] if not match.empty else None
-
-
 def generate_report(
     df: pd.DataFrame,
     flags: pd.DataFrame,
     thresholds: dict[str, float],
-    evaluation: pd.DataFrame | None,
 ) -> None:
     total = len(df)
     completed = int((df["survey_status"] == "Complete").sum())
@@ -549,36 +498,6 @@ def generate_report(
         count = int(flags[column].sum())
         percentage = (count / total * 100) if total else 0.0
         flag_rows.append(f"| {label} | {count:,} | {percentage:.1f}% |")
-
-    evaluation_section = ""
-    if evaluation is not None:
-        precision = metric_value(evaluation, "Precision")
-        recall = metric_value(evaluation, "Recall")
-        specificity = metric_value(evaluation, "Specificity")
-        accuracy = metric_value(evaluation, "Accuracy")
-        tp = metric_value(evaluation, "True positives")
-        fp = metric_value(evaluation, "False positives")
-        fn = metric_value(evaluation, "False negatives")
-        tn = metric_value(evaluation, "True negatives")
-
-        evaluation_section = f"""
-## Ground-truth evaluation
-
-The simulation ground truth was loaded only after the QC rules had been applied. It was not used to construct or tune the rules.
-
-| Metric | Result |
-|---|---:|
-| True positives | {int(tp):,} |
-| False positives | {int(fp):,} |
-| False negatives | {int(fn):,} |
-| True negatives | {int(tn):,} |
-| Precision | {float(precision):.3f} |
-| Recall | {float(recall):.3f} |
-| Specificity | {float(specificity):.3f} |
-| Accuracy | {float(accuracy):.3f} |
-
-These metrics show how closely the transparent audit rules recover the deliberately injected quality problems in the simulated data. False positives are possible because some legitimate responses can naturally look suspicious, so individual behavioural signals should not automatically be treated as proof of poor quality.
-"""
 
     report = f"""# Survey Response Quality Audit
 
@@ -626,7 +545,7 @@ The dashed line marks the data-derived speeder threshold used in the audit.
 ![Survey quality flags](figures/quality_flag_counts.png)
 
 This figure compares the number of responses identified by each QC rule.
-{evaluation_section}
+
 ## Outputs
 
 Running `python analysis.py` creates or replaces the following files:
@@ -634,7 +553,6 @@ Running `python analysis.py` creates or replaces the following files:
 - `report.md` — this report.
 - `outputs/quality_flags.csv` — respondent-level QC indicators and recommendations.
 - `outputs/quality_summary.csv` — summary counts and thresholds.
-- `outputs/ground_truth_evaluation.csv` — validation metrics when the simulation ground-truth file is available.
 - `figures/completion_duration_distribution.png` — completion-time distribution.
 - `figures/quality_flag_counts.png` — counts for each QC flag.
 
@@ -670,12 +588,8 @@ def main() -> None:
     flags.to_csv(OUTPUT_DIR / "quality_flags.csv", index=False)
     summary.to_csv(OUTPUT_DIR / "quality_summary.csv", index=False)
 
-    evaluation = evaluate_against_ground_truth(flags)
-    if evaluation is not None:
-        evaluation.to_csv(OUTPUT_DIR / "ground_truth_evaluation.csv", index=False)
-
     create_figures(df, flags, thresholds)
-    generate_report(df, flags, thresholds, evaluation)
+    generate_report(df, flags, thresholds)
 
     print("Survey Response Quality Audit")
     print("=" * 34)
@@ -691,11 +605,6 @@ def main() -> None:
     print(f"\nReport written to: {REPORT_FILE.relative_to(ROOT)}")
     print(f"Outputs saved to: {OUTPUT_DIR.relative_to(ROOT)}/")
     print(f"Figures saved to: {FIGURE_DIR.relative_to(ROOT)}/")
-
-    if evaluation is not None:
-        print("\nGround-truth evaluation")
-        for _, row in evaluation.iterrows():
-            print(f"{row['metric']}: {row['value']}")
 
     save_generated_files_to_repository()
 
