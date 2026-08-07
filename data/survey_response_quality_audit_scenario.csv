@@ -7,5 +7,4 @@ Completed responses,1200
 Partial responses,50
 Intended use,Portfolio case study for survey response quality auditing in Python.
 Primary audit signals available,"Completion, duration, page-level timing, attention check, straight-lining, logical consistency, duplicate-like metadata, range validation and open-text quality."
-Important,The raw-data sheet contains no QC labels. Use the Ground Truth sheet only after developing your own audit rules if you want to evaluate them.
 Random seed,20260807
