@@ -1,21 +1,3 @@
-"""Survey Response Quality Audit
-
-Portfolio case study using a simulated online survey dataset.
-
-The script first checks that the local Codespace repository is up to date with
-its remote branch. It then audits survey responses for common data-quality
-problems without using the simulation ground truth to define the rules. Ground
-truth is loaded only at the end, if available, to evaluate how well the audit
-detected the injected issues.
-
-Run from the repository root with:
-
-    python analysis.py
-
-Each run replaces ./report.md with an up-to-date Markdown report. Supporting
-CSV outputs are written to ./outputs and figures to ./figures.
-"""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -106,7 +88,6 @@ LOW_QUALITY_OPEN_TEXT = {
 
 
 def run_git(*args: str) -> subprocess.CompletedProcess[str]:
-    """Run a Git command from the repository root and capture its output."""
     try:
         return subprocess.run(
             ["git", *args],
@@ -126,13 +107,6 @@ def run_git(*args: str) -> subprocess.CompletedProcess[str]:
 
 
 def check_repository_up_to_date() -> None:
-    """Fetch the remote and stop if the Codespace is behind its remote branch.
-
-    The function deliberately does not run ``git pull``. Fetching is safe because
-    it does not change the working tree, while an automatic pull could interfere
-    with local work. If the local checkout is behind, the user is told exactly
-    what to run before starting the analysis.
-    """
     inside_work_tree = run_git("rev-parse", "--is-inside-work-tree").stdout.strip()
     if inside_work_tree.lower() != "true":
         raise SystemExit("This script must be run from inside a Git repository.")
@@ -143,14 +117,13 @@ def check_repository_up_to_date() -> None:
     branch = run_git("branch", "--show-current").stdout.strip()
     remote_ref = f"origin/{branch}" if branch else "origin/main"
 
-    # If a non-main local branch has no matching remote branch, compare with
-    # origin/main instead so the check still works in a typical Codespace.
     remote_exists = subprocess.run(
         ["git", "rev-parse", "--verify", "--quiet", remote_ref],
         cwd=ROOT,
         capture_output=True,
         text=True,
     ).returncode == 0
+
     if not remote_exists:
         remote_ref = "origin/main"
         run_git("rev-parse", "--verify", remote_ref)
@@ -184,7 +157,6 @@ def check_repository_up_to_date() -> None:
 
 
 def load_raw_data() -> pd.DataFrame:
-    """Load the raw survey file and parse timestamps."""
     if not RAW_FILE.exists():
         raise FileNotFoundError(
             f"Raw data file not found: {RAW_FILE}\n"
@@ -201,7 +173,6 @@ def load_raw_data() -> pd.DataFrame:
 
 
 def validate_required_columns(df: pd.DataFrame) -> None:
-    """Fail early if important variables are missing from the raw file."""
     required = {
         "response_id",
         "survey_status",
@@ -229,7 +200,6 @@ def validate_required_columns(df: pd.DataFrame) -> None:
 
 
 def age_band_from_age(age: float) -> str | None:
-    """Return the expected survey age band for a numeric age."""
     if pd.isna(age):
         return None
     age = int(age)
@@ -249,20 +219,16 @@ def age_band_from_age(age: float) -> str | None:
 
 
 def open_text_is_low_quality(value: object) -> bool:
-    """Apply simple, transparent heuristics to an open-ended response."""
     if pd.isna(value):
         return True
 
     text = str(value).strip().lower()
-    if not text:
-        return True
-    if text in LOW_QUALITY_OPEN_TEXT:
+    if not text or text in LOW_QUALITY_OPEN_TEXT:
         return True
 
     compact = re.sub(r"\s+", "", text)
     letters = re.sub(r"[^a-z]", "", text)
 
-    # Very short answers, numeric-only strings and repeated-character strings.
     if len(compact) < 3:
         return True
     if not letters:
@@ -270,7 +236,6 @@ def open_text_is_low_quality(value: object) -> bool:
     if len(set(letters)) <= 2 and len(letters) >= 5:
         return True
 
-    # Repeated token such as "none none none" or "word word word".
     tokens = re.findall(r"[a-z]+", text)
     if len(tokens) >= 3 and len(set(tokens)) == 1:
         return True
@@ -279,24 +244,20 @@ def open_text_is_low_quality(value: object) -> bool:
 
 
 def build_quality_flags(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float]]:
-    """Create respondent-level QC indicators using pre-specified audit rules."""
     flags = pd.DataFrame(index=df.index)
     flags["response_id"] = df["response_id"]
 
-    # 1. Partial / incomplete responses.
     flags["flag_partial"] = (
         df["survey_status"].astype(str).str.lower().ne("complete")
         | pd.to_numeric(df["progress_pct"], errors="coerce").lt(100)
     )
 
-    # 2. Speeding. Use one-third of the median duration among completed responses.
     duration = pd.to_numeric(df["duration_sec"], errors="coerce")
     complete_mask = ~flags["flag_partial"] & duration.notna()
     median_complete_duration = float(duration.loc[complete_mask].median())
     speeder_threshold = median_complete_duration / 3.0
     flags["flag_speeder"] = complete_mask & duration.lt(speeder_threshold)
 
-    # 3. Straight-lining across the eight 1-7 rating-grid items.
     grid = df[GRID_COLUMNS].apply(pd.to_numeric, errors="coerce")
     grid_answer_count = grid.notna().sum(axis=1)
     grid_unique_count = grid.nunique(axis=1, dropna=True)
@@ -306,20 +267,17 @@ def build_quality_flags(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float
         & grid_unique_count.eq(1)
     )
 
-    # 4. Instructional attention check. Correct answer is 3.
     attention = pd.to_numeric(df["q8_attention_check"], errors="coerce")
     flags["flag_attention_fail"] = (
         ~flags["flag_partial"] & attention.notna() & attention.ne(3)
     )
 
-    # 5. Invalid or out-of-range values.
     age = pd.to_numeric(df["age"], errors="coerce")
     nps = pd.to_numeric(df["q6_nps"], errors="coerce")
 
     rating_invalid = pd.Series(False, index=df.index)
     for column in RATING_1_TO_7_COLUMNS:
         values = pd.to_numeric(df[column], errors="coerce")
-        # Missing routed values are allowed; only non-missing values are range-checked.
         rating_invalid |= values.notna() & ~values.between(1, 7)
 
     flags["flag_invalid_value"] = (
@@ -328,7 +286,6 @@ def build_quality_flags(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float
         | rating_invalid
     )
 
-    # 6. Logical consistency checks.
     expected_age_band = age.map(age_band_from_age)
     age_band_mismatch = expected_age_band.notna() & df["age_band"].ne(expected_age_band)
 
@@ -370,10 +327,6 @@ def build_quality_flags(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float
         | resolution_without_contact
     )
 
-    # 7. Duplicate-like submissions.
-    # A later response is flagged when it repeats a fingerprint and the same
-    # substantive answer pattern. The earliest matching response is retained as
-    # the presumed original rather than automatically flagging the whole group.
     duplicate_frame = df[SUBSTANTIVE_DUPLICATE_COLUMNS].copy()
     duplicate_frame = duplicate_frame.fillna("<MISSING>").astype(str)
     answer_signature = pd.util.hash_pandas_object(
@@ -398,7 +351,6 @@ def build_quality_flags(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float
     ordering["rank_within_key"] = ordering.groupby("key").cumcount()
     flags["flag_duplicate_like"] = ordering["rank_within_key"].reindex(df.index).gt(0)
 
-    # 8. Low-quality open-ended text. Only evaluate completed responses.
     flags["flag_low_quality_open_text"] = (
         ~flags["flag_partial"] & df["q16_open_end"].map(open_text_is_low_quality)
     )
@@ -417,8 +369,6 @@ def build_quality_flags(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float
     flags["total_flags"] = flags[flag_columns].sum(axis=1).astype(int)
     flags["qc_flagged"] = flags["total_flags"].gt(0)
 
-    # Hard failures are structural or clearly invalid. Behavioural indicators
-    # are treated more cautiously: two or more are required for auto-exclusion.
     hard_fail = (
         flags["flag_partial"]
         | flags["flag_invalid_value"]
@@ -445,7 +395,6 @@ def build_quality_flags(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float
 def create_quality_summary(
     df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, float]
 ) -> pd.DataFrame:
-    """Create a compact summary table for the audit."""
     flag_columns = [c for c in flags.columns if c.startswith("flag_")]
 
     rows = [
@@ -466,11 +415,6 @@ def create_quality_summary(
 
 
 def evaluate_against_ground_truth(flags: pd.DataFrame) -> pd.DataFrame | None:
-    """Evaluate the completed audit against simulation labels, if present.
-
-    Ground truth is deliberately loaded only here, after all QC rules have been
-    calculated, so it cannot influence rule construction.
-    """
     if not GROUND_TRUTH_FILE.exists():
         return None
 
@@ -513,10 +457,8 @@ def evaluate_against_ground_truth(flags: pd.DataFrame) -> pd.DataFrame | None:
 
 
 def create_figures(df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, float]) -> None:
-    """Create two simple portfolio-ready figures."""
     FIGURE_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Survey duration distribution.
     duration = pd.to_numeric(df["duration_sec"], errors="coerce")
     completed = duration[df["survey_status"].eq("Complete")].dropna()
 
@@ -536,7 +478,6 @@ def create_figures(df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, 
     fig.savefig(FIGURE_DIR / "completion_duration_distribution.png", dpi=180)
     plt.close(fig)
 
-    # QC flag counts.
     flag_columns = [c for c in flags.columns if c.startswith("flag_")]
     counts = flags[flag_columns].sum().sort_values()
     labels = [c.removeprefix("flag_").replace("_", " ").title() for c in counts.index]
@@ -551,7 +492,6 @@ def create_figures(df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, 
 
 
 def metric_value(table: pd.DataFrame | None, metric: str) -> object | None:
-    """Return one metric value from a two-column metric/value table."""
     if table is None or table.empty:
         return None
     match = table.loc[table["metric"].eq(metric), "value"]
@@ -561,11 +501,9 @@ def metric_value(table: pd.DataFrame | None, metric: str) -> object | None:
 def generate_report(
     df: pd.DataFrame,
     flags: pd.DataFrame,
-    summary: pd.DataFrame,
     thresholds: dict[str, float],
     evaluation: pd.DataFrame | None,
 ) -> None:
-    """Write the portfolio report to report.md, replacing any existing file."""
     total = len(df)
     completed = int((df["survey_status"] == "Complete").sum())
     partial = int(flags["flag_partial"].sum())
@@ -687,9 +625,7 @@ Before the analysis starts, the script fetches the remote repository and checks 
 
 
 def main() -> None:
-    # Check freshness before creating folders or replacing any generated files.
     check_repository_up_to_date()
-
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     df = load_raw_data()
@@ -706,7 +642,7 @@ def main() -> None:
         evaluation.to_csv(OUTPUT_DIR / "ground_truth_evaluation.csv", index=False)
 
     create_figures(df, flags, thresholds)
-    generate_report(df, flags, summary, thresholds, evaluation)
+    generate_report(df, flags, thresholds, evaluation)
 
     print("Survey Response Quality Audit")
     print("=" * 34)
