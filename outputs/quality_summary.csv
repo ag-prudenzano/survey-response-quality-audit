@@ -1,0 +1,16 @@
+metric,value
+Total responses,1250.0
+Completed responses,1200.0
+Responses with at least one QC flag,272.0
+Recommended for review,177.0
+Recommended for exclusion,95.0
+Median completed duration (sec),532.0
+Speeder threshold (sec),177.3
+Flag: Partial,50.0
+Flag: Speeder,55.0
+Flag: Straightliner,53.0
+Flag: Attention Fail,44.0
+Flag: Invalid Value,7.0
+Flag: Logic Error,36.0
+Flag: Duplicate Like,18.0
+Flag: Low Quality Open Text,32.0
