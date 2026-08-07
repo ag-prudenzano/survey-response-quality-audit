@@ -2,10 +2,11 @@
 
 Portfolio case study using a simulated online survey dataset.
 
-The script audits survey responses for common data-quality problems without
-using the simulation ground truth to define the rules. Ground truth is loaded
-only at the end, if available, to evaluate how well the audit detected the
-injected issues.
+The script first checks that the local Codespace repository is up to date with
+its remote branch. It then audits survey responses for common data-quality
+problems without using the simulation ground truth to define the rules. Ground
+truth is loaded only at the end, if available, to evaluate how well the audit
+detected the injected issues.
 
 Run from the repository root with:
 
@@ -19,6 +20,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
+import subprocess
 
 try:
     import numpy as np
@@ -101,6 +103,84 @@ LOW_QUALITY_OPEN_TEXT = {
     "qwerty",
     "asdfgh",
 }
+
+
+def run_git(*args: str) -> subprocess.CompletedProcess[str]:
+    """Run a Git command from the repository root and capture its output."""
+    try:
+        return subprocess.run(
+            ["git", *args],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError as exc:
+        raise SystemExit(
+            "Git is not available in this environment. Run the analysis from a "
+            "GitHub Codespace or another Git checkout."
+        ) from exc
+    except subprocess.CalledProcessError as exc:
+        detail = (exc.stderr or exc.stdout or "Unknown Git error").strip()
+        raise SystemExit(f"Git command failed: git {' '.join(args)}\n{detail}") from exc
+
+
+def check_repository_up_to_date() -> None:
+    """Fetch the remote and stop if the Codespace is behind its remote branch.
+
+    The function deliberately does not run ``git pull``. Fetching is safe because
+    it does not change the working tree, while an automatic pull could interfere
+    with local work. If the local checkout is behind, the user is told exactly
+    what to run before starting the analysis.
+    """
+    inside_work_tree = run_git("rev-parse", "--is-inside-work-tree").stdout.strip()
+    if inside_work_tree.lower() != "true":
+        raise SystemExit("This script must be run from inside a Git repository.")
+
+    print("Checking repository status against GitHub...")
+    run_git("fetch", "origin")
+
+    branch = run_git("branch", "--show-current").stdout.strip()
+    remote_ref = f"origin/{branch}" if branch else "origin/main"
+
+    # If a non-main local branch has no matching remote branch, compare with
+    # origin/main instead so the check still works in a typical Codespace.
+    remote_exists = subprocess.run(
+        ["git", "rev-parse", "--verify", "--quiet", remote_ref],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    ).returncode == 0
+    if not remote_exists:
+        remote_ref = "origin/main"
+        run_git("rev-parse", "--verify", remote_ref)
+
+    comparison = run_git("rev-list", "--left-right", "--count", f"HEAD...{remote_ref}")
+    try:
+        local_only, remote_only = [int(value) for value in comparison.stdout.split()]
+    except (TypeError, ValueError) as exc:
+        raise SystemExit(
+            "Could not determine whether the local repository is up to date."
+        ) from exc
+
+    if remote_only > 0:
+        status = (
+            f"Your Codespace is {remote_only} commit(s) behind {remote_ref}.\n"
+            "The analysis has stopped before creating or replacing any output files.\n\n"
+            "Run:\n\n"
+            "    git pull --ff-only\n\n"
+            "Then run:\n\n"
+            "    python analysis.py"
+        )
+        if local_only > 0:
+            status += (
+                "\n\nYour local branch also contains commits that are not on the remote. "
+                "If `git pull --ff-only` cannot complete, review your Git history "
+                "before continuing."
+            )
+        raise SystemExit(status)
+
+    print(f"Repository is up to date with {remote_ref}.")
 
 
 def load_raw_data() -> pd.DataFrame:
@@ -598,13 +678,18 @@ pip install -r requirements.txt
 python analysis.py
 ```
 
-`report.md` is deliberately overwritten on every run so the repository contains one current report rather than a series of duplicate report files.
+Before the analysis starts, the script fetches the remote repository and checks whether the local Codespace is behind its remote branch. If it is behind, the script stops without replacing any analysis outputs and asks you to run `git pull --ff-only` first.
+
+`report.md` is deliberately overwritten on every successful run so the repository contains one current report rather than a series of duplicate report files.
 """
 
     REPORT_FILE.write_text(report.strip() + "\n", encoding="utf-8")
 
 
 def main() -> None:
+    # Check freshness before creating folders or replacing any generated files.
+    check_repository_up_to_date()
+
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     df = load_raw_data()
