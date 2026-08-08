@@ -475,7 +475,6 @@ def create_figures(df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, 
             FIGURE_DIR / "completion_duration_distribution.png",
             dpi=200,
             facecolor=FIGURE_BACKGROUND,
-            bbox_inches="tight",
         )
         plt.close(fig)
 
@@ -515,7 +514,6 @@ def create_figures(df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, 
             FIGURE_DIR / "quality_flag_counts.png",
             dpi=200,
             facecolor=FIGURE_BACKGROUND,
-            bbox_inches="tight",
         )
         plt.close(fig)
 
@@ -545,7 +543,7 @@ def generate_report(
 
 | Project type | Dataset | Tools | Outputs |
 |---|---|---|---|
-| Simulated quantitative case study | {total:,} simulated UK online survey responses | Python / Pandas / NumPy / Matplotlib | Respondent-level QC flags · summary diagnostics · figures · review/exclusion recommendations |
+| Simulated Quantitative Case Study | {total:,} Simulated UK Online Survey Responses | Python / Pandas / NumPy / Matplotlib | Respondent-Level QC Flags · Summary Diagnostics · Figures · Review/Exclusion Recommendations |
 
 **Skills demonstrated:** Survey Data Quality · Data Cleaning & Validation · Paradata Analysis · Survey Logic & Routing Checks · Simulated Fieldwork & Data-Collection QC · Duplicate Detection · Open-Text Quality Review · Reproducible Analysis · Data Visualisation
 
