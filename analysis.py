@@ -543,9 +543,9 @@ def generate_report(
 
 ## Study context
 
-This simulated case study is set within a hypothetical UK online survey about restaurant-delivery usage and experience. The target population is adults aged **18–74** who ordered restaurant delivery within the previous **3 months**, with simulated fieldwork running from **6–20 July 2026**.
+This simulated case study is set within a hypothetical UK online survey about restaurant-delivery usage and experience. The target population is adults aged 18–74 who ordered restaurant delivery within the previous 3 months, with simulated fieldwork running from 6–20 July 2026.
 
-The dataset contains **{total:,} captured responses**, including **{completed:,} completed responses** and **{partial:,} partial responses**. Fictional delivery-service names are used only to make the scenario realistic; the purpose of the case study is to assess survey response quality rather than draw conclusions about the restaurant-delivery market.
+The dataset contains {total:,} captured responses, including {completed:,} completed responses and {partial:,} partial responses. Fictional delivery-service names are used only to make the scenario realistic; the purpose of the case study is to assess survey response quality rather than draw conclusions about the restaurant-delivery market.
 
 ## Audit objective
 
@@ -566,11 +566,11 @@ The audit applies eight respondent-level quality checks:
 7. **Duplicate-like submissions** — repeated browser fingerprints combined with identical substantive answer patterns.
 8. **Low-quality open text** — blank, nonsensical, extremely short, numeric-only, or repetitive open-ended responses.
 
-The median duration among completed responses was **{thresholds['median_complete_duration_sec']:.1f} seconds**. The resulting speeder threshold was **{thresholds['speeder_threshold_sec']:.1f} seconds**.
+The median duration among completed responses was {thresholds['median_complete_duration_sec']:.1f} seconds. The resulting speeder threshold was {thresholds['speeder_threshold_sec']:.1f} seconds.
 
 ## Findings
 
-**{flagged:,} responses ({(flagged / total * 100 if total else 0):.1f}%)** received at least one QC flag. Of these, **{review:,}** were recommended for manual review and **{exclude:,}** were recommended for exclusion under the pre-specified decision rules.
+{flagged:,} responses ({(flagged / total * 100 if total else 0):.1f}%) received at least one QC flag. Of these, {review:,} were recommended for manual review and {exclude:,} were recommended for exclusion under the pre-specified decision rules.
 
 | QC check | Responses flagged | Share of all responses |
 |---|---:|---:|
@@ -597,8 +597,6 @@ The dashed line marks the data-derived speeder threshold used in the audit.
 This figure compares the number of responses identified by each QC rule.
 
 ## Project files
-
-Running `python analysis.py` creates or replaces the following files:
 
 - [`report.md`](report.md) — this report.
 - [`outputs/quality_flags.csv`](outputs/quality_flags.csv) — respondent-level QC indicators and recommendations.
