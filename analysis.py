@@ -563,14 +563,14 @@ Each respondent receives individual QC flags, followed by a recommendation for m
 
 The audit applies eight respondent-level quality checks:
 
-1. **Partial responses** — surveys not marked complete or with progress below 100%.
-2. **Speeding** — completed surveys below one-third of the median completed survey duration.
-3. **Straight-lining** — the same response across all eight items in the main 1–7 rating grid.
-4. **Attention-check failure** — respondents who do not select the instructed answer on the embedded attention check.
-5. **Invalid values** — age, NPS, or 1–7 rating variables outside their permitted ranges.
-6. **Logical inconsistencies** — contradictions across eligibility, recency, routing, support-contact, and related survey answers.
-7. **Duplicate-like submissions** — repeated browser fingerprints combined with identical substantive answer patterns.
-8. **Low-quality open text** — blank, nonsensical, extremely short, numeric-only, or repetitive open-ended responses.
+1. **Partial responses** — Surveys not marked complete or with progress below 100%.
+2. **Speeding** — Completed surveys below one-third of the median completed survey duration.
+3. **Straight-lining** — The same response across all eight items in the main 1–7 rating grid.
+4. **Attention-check failure** — Respondents who do not select the instructed answer on the embedded attention check.
+5. **Invalid values** — Age, NPS, or 1–7 rating variables outside their permitted ranges.
+6. **Logical inconsistencies** — Contradictions across eligibility, recency, routing, support-contact, and related survey answers.
+7. **Duplicate-like submissions** — Repeated browser fingerprints combined with identical substantive answer patterns.
+8. **Low-quality open text** — Blank, nonsensical, extremely short, numeric-only, or repetitive open-ended responses.
 
 The median duration among completed responses was {thresholds['median_complete_duration_sec']:.1f} seconds. The resulting speeder threshold was {thresholds['speeder_threshold_sec']:.1f} seconds.
 
@@ -604,11 +604,11 @@ This figure compares the number of responses identified by each QC rule.
 
 ## Project Files
 
-- [`report.md`](report.md) — this report.
-- [`outputs/quality_flags.csv`](outputs/quality_flags.csv) — respondent-level QC indicators and recommendations.
-- [`outputs/quality_summary.csv`](outputs/quality_summary.csv) — summary counts and thresholds.
-- [`figures/completion_duration_distribution.png`](figures/completion_duration_distribution.png) — completion-time distribution.
-- [`figures/quality_flag_counts.png`](figures/quality_flag_counts.png) — counts for each QC flag.
+- [`report.md`](report.md) — This report.
+- [`outputs/quality_flags.csv`](outputs/quality_flags.csv) — Respondent-level QC indicators and recommendations.
+- [`outputs/quality_summary.csv`](outputs/quality_summary.csv) — Summary counts and thresholds.
+- [`figures/completion_duration_distribution.png`](figures/completion_duration_distribution.png) — Completion-time distribution.
+- [`figures/quality_flag_counts.png`](figures/quality_flag_counts.png) — Counts for each QC flag.
 """
 
     REPORT_FILE.write_text(report.strip() + "\n", encoding="utf-8")
