@@ -39,6 +39,10 @@ The median duration among completed responses was 532.0 seconds. The resulting s
 
 272 responses (21.8%) received at least one QC flag. Of these, 177 were recommended for manual review and 95 were recommended for exclusion under the pre-specified decision rules.
 
+| Flagged | Manual Review | Exclusion |
+|---:|---:|---:|
+| 272 | 177 | 95 |
+
 | QC check | Responses flagged | Share of all responses |
 |---|---:|---:|
 | Partial | 50 | 4.0% |
@@ -60,15 +64,15 @@ This keeps the decision rule auditable and avoids treating a single suspicious p
 
 ### Completion Duration
 
-![Survey completion duration](figures/completion_duration_distribution.png)
+![Histogram of completed survey durations with the speeder threshold](figures/completion_duration_distribution.png)
 
-The dashed line marks the data-derived speeder threshold used in the audit.
+Completed responses had a median duration of 532.0 seconds. The audit classified completed responses below 177.3 seconds as speeders; the dashed line marks this threshold.
 
 ### Quality Flags
 
-![Survey quality flags](figures/quality_flag_counts.png)
+![Horizontal bar chart of response counts for each survey quality flag](figures/quality_flag_counts.png)
 
-This figure compares the number of responses identified by each QC rule.
+Speeding was the most common individual flag (55 responses), followed by straight-lining (53) and partial responses (50). The Findings table above provides the exact count and share for every QC rule.
 
 ## Project Files
 
