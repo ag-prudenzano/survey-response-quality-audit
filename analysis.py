@@ -463,7 +463,7 @@ def create_figures(df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, 
             loc="left",
             pad=18,
             fontsize=16,
-            fontweight=500,
+            fontweight=400,
         )
         ax.set_xlabel("Duration (seconds)", labelpad=12)
         ax.set_ylabel("Completed responses", labelpad=12)
@@ -496,7 +496,7 @@ def create_figures(df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, 
             loc="left",
             pad=18,
             fontsize=16,
-            fontweight=500,
+            fontweight=400,
         )
         ax.set_xlabel("Responses flagged", labelpad=12)
         ax.set_ylabel("")
