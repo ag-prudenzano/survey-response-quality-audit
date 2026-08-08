@@ -541,28 +541,34 @@ def generate_report(
 
     report = f"""# Survey Response Quality Audit
 
-## Overview
+## Study context
 
-This simulated case study audits an online survey dataset for common response-quality problems. The analysis uses transparent, reproducible Python rules to identify incomplete responses, unusually fast completions, straight-lining, failed attention checks, invalid values, logical inconsistencies, duplicate-like submissions, and low-quality open-ended text.
+This simulated case study is set within a hypothetical UK online survey about restaurant-delivery usage and experience. The target population is adults aged **18–74** who ordered restaurant delivery within the previous **3 months**, with simulated fieldwork running from **6–20 July 2026**.
 
-The raw dataset contains **{total:,} responses**, including **{completed:,} completed responses** and **{partial:,} partial responses**.
+The dataset contains **{total:,} captured responses**, including **{completed:,} completed responses** and **{partial:,} partial responses**. Fictional delivery-service names are used only to make the scenario realistic; the purpose of the case study is to assess survey response quality rather than draw conclusions about the restaurant-delivery market.
 
-## Approach
+## Audit objective
+
+The objective is to identify responses that may not be sufficiently reliable for analysis using transparent, reproducible rules based on completion status, paradata, response patterns, routing consistency, duplicate-like metadata and open-text quality.
+
+Each respondent receives individual QC flags, followed by a recommendation for manual review or exclusion.
+
+## Quality checks
 
 The audit applies eight respondent-level quality checks:
 
-1. **Partial responses** — responses not marked complete or with progress below 100%.
+1. **Partial responses** — surveys not marked complete or with progress below 100%.
 2. **Speeding** — completed surveys below one-third of the median completed survey duration.
-3. **Straight-lining** — the same answer across all eight items in the main 1–7 rating grid.
-4. **Attention-check failure** — a response other than the instructed value of 3.
-5. **Invalid values** — ages, NPS scores, or 1–7 ratings outside their permitted ranges.
-6. **Logical inconsistencies** — contradictions between eligibility, recency, routing, and related answers.
+3. **Straight-lining** — the same response across all eight items in the main 1–7 rating grid.
+4. **Attention-check failure** — respondents who do not select the instructed answer on the embedded attention check.
+5. **Invalid values** — age, NPS, or 1–7 rating variables outside their permitted ranges.
+6. **Logical inconsistencies** — contradictions across eligibility, recency, routing, support-contact, and related survey answers.
 7. **Duplicate-like submissions** — repeated browser fingerprints combined with identical substantive answer patterns.
-8. **Low-quality open text** — blank, nonsensical, extremely short, numeric-only, or repetitive responses.
+8. **Low-quality open text** — blank, nonsensical, extremely short, numeric-only, or repetitive open-ended responses.
 
 The median duration among completed responses was **{thresholds['median_complete_duration_sec']:.1f} seconds**. The resulting speeder threshold was **{thresholds['speeder_threshold_sec']:.1f} seconds**.
 
-## Results
+## Findings
 
 **{flagged:,} responses ({(flagged / total * 100 if total else 0):.1f}%)** received at least one QC flag. Of these, **{review:,}** were recommended for manual review and **{exclude:,}** were recommended for exclusion under the pre-specified decision rules.
 
@@ -570,7 +576,11 @@ The median duration among completed responses was **{thresholds['median_complete
 |---|---:|---:|
 {chr(10).join(flag_rows)}
 
+## Decision logic
+
 A single behavioural warning is not treated as sufficient evidence for automatic exclusion. Partial responses, invalid values, and duplicate-like submissions are treated as hard failures; otherwise, at least two behavioural indicators are required for an exclusion recommendation.
+
+This keeps the decision rule auditable and avoids treating a single suspicious pattern as definitive evidence of poor response quality.
 
 ## Figures
 
@@ -586,7 +596,7 @@ The dashed line marks the data-derived speeder threshold used in the audit.
 
 This figure compares the number of responses identified by each QC rule.
 
-## Outputs
+## Project files
 
 Running `python analysis.py` creates or replaces the following files:
 
@@ -605,11 +615,7 @@ pip install -r requirements.txt
 python analysis.py
 ```
 
-Before the analysis starts, the script fetches the remote repository and checks whether the local Codespace is behind its remote branch. If it is behind, the script stops without replacing any analysis outputs and asks you to run `git pull --ff-only` first.
-
-After a successful run, `report.md`, `outputs/`, and `figures/` are committed and pushed to the current GitHub branch automatically. Unrelated local changes are not included in the automatic commit.
-
-`report.md` is deliberately overwritten on every successful run so the repository contains one current report rather than a series of duplicate report files.
+Before analysis starts, the script checks whether the local repository is behind its remote branch. After a successful run, `report.md`, `outputs/`, and `figures/` are committed and pushed automatically if they changed. Unrelated local changes are not included.
 """
 
     REPORT_FILE.write_text(report.strip() + "\n", encoding="utf-8")
