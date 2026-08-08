@@ -1,5 +1,13 @@
 # Survey Response Quality Audit
 
+## Project Snapshot
+
+| Project type | Dataset | Tools | Outputs |
+|---|---|---|---|
+| Simulated quantitative case study | 1,250 simulated UK online survey responses | Python · pandas · NumPy · Matplotlib | Respondent-level QC flags · summary diagnostics · figures · review/exclusion recommendations |
+
+**Skills demonstrated:** Survey data quality · Data cleaning & validation · Paradata analysis · Survey logic & routing checks · Simulated fieldwork & data-collection QC · Duplicate detection · Open-text quality review · Reproducible analysis · Data visualisation
+
 ## Study Context
 
 This simulated case study is set within a hypothetical UK online survey about restaurant-delivery usage and experience. The target population is adults aged 18–74 who ordered restaurant delivery within the previous 3 months, with simulated fieldwork running from 6–20 July 2026.
