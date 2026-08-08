@@ -66,19 +66,8 @@ This figure compares the number of responses identified by each QC rule.
 
 Running `python analysis.py` creates or replaces the following files:
 
-- `report.md` — this report.
-- `outputs/quality_flags.csv` — respondent-level QC indicators and recommendations.
-- `outputs/quality_summary.csv` — summary counts and thresholds.
-- `figures/completion_duration_distribution.png` — completion-time distribution.
-- `figures/quality_flag_counts.png` — counts for each QC flag.
-
-## Reproducibility
-
-The analysis is run from the repository root with:
-
-```bash
-pip install -r requirements.txt
-python analysis.py
-```
-
-Before analysis starts, the script checks whether the local repository is behind its remote branch. After a successful run, `report.md`, `outputs/`, and `figures/` are committed and pushed automatically if they changed. Unrelated local changes are not included.
+- [`report.md`](report.md) — this report.
+- [`outputs/quality_flags.csv`](outputs/quality_flags.csv) — respondent-level QC indicators and recommendations.
+- [`outputs/quality_summary.csv`](outputs/quality_summary.csv) — summary counts and thresholds.
+- [`figures/completion_duration_distribution.png`](figures/completion_duration_distribution.png) — completion-time distribution.
+- [`figures/quality_flag_counts.png`](figures/quality_flag_counts.png) — counts for each QC flag.
