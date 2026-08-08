@@ -1,18 +1,18 @@
 # Survey Response Quality Audit
 
-## Study context
+## Study Context
 
 This simulated case study is set within a hypothetical UK online survey about restaurant-delivery usage and experience. The target population is adults aged 18–74 who ordered restaurant delivery within the previous 3 months, with simulated fieldwork running from 6–20 July 2026.
 
 The dataset contains 1,250 captured responses, including 1,200 completed responses and 50 partial responses. Fictional delivery-service names are used only to make the scenario realistic; the purpose of the case study is to assess survey response quality rather than draw conclusions about the restaurant-delivery market.
 
-## Audit objective
+## Audit Objective
 
 The objective is to identify responses that may not be sufficiently reliable for analysis using transparent, reproducible rules based on completion status, paradata, response patterns, routing consistency, duplicate-like metadata and open-text quality.
 
 Each respondent receives individual QC flags, followed by a recommendation for manual review or exclusion.
 
-## Quality checks
+## Quality Checks
 
 The audit applies eight respondent-level quality checks:
 
@@ -42,7 +42,7 @@ The median duration among completed responses was 532.0 seconds. The resulting s
 | Duplicate Like | 18 | 1.4% |
 | Low Quality Open Text | 32 | 2.6% |
 
-## Decision logic
+## Decision Logic
 
 A single behavioural warning is not treated as sufficient evidence for automatic exclusion. Partial responses, invalid values, and duplicate-like submissions are treated as hard failures; otherwise, at least two behavioural indicators are required for an exclusion recommendation.
 
@@ -50,19 +50,19 @@ This keeps the decision rule auditable and avoids treating a single suspicious p
 
 ## Figures
 
-### Completion duration
+### Completion Duration
 
 ![Survey completion duration](figures/completion_duration_distribution.png)
 
 The dashed line marks the data-derived speeder threshold used in the audit.
 
-### Quality flags
+### Quality Flags
 
 ![Survey quality flags](figures/quality_flag_counts.png)
 
 This figure compares the number of responses identified by each QC rule.
 
-## Project files
+## Project Files
 
 - [`report.md`](report.md) — this report.
 - [`outputs/quality_flags.csv`](outputs/quality_flags.csv) — respondent-level QC indicators and recommendations.
