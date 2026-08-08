@@ -2,9 +2,9 @@
 
 ## Study context
 
-This simulated case study is set within a hypothetical UK online survey about restaurant-delivery usage and experience. The target population is adults aged **18–74** who ordered restaurant delivery within the previous **3 months**, with simulated fieldwork running from **6–20 July 2026**.
+This simulated case study is set within a hypothetical UK online survey about restaurant-delivery usage and experience. The target population is adults aged 18–74 who ordered restaurant delivery within the previous 3 months, with simulated fieldwork running from 6–20 July 2026.
 
-The dataset contains **1,250 captured responses**, including **1,200 completed responses** and **50 partial responses**. Fictional delivery-service names are used only to make the scenario realistic; the purpose of the case study is to assess survey response quality rather than draw conclusions about the restaurant-delivery market.
+The dataset contains 1,250 captured responses, including 1,200 completed responses and 50 partial responses. Fictional delivery-service names are used only to make the scenario realistic; the purpose of the case study is to assess survey response quality rather than draw conclusions about the restaurant-delivery market.
 
 ## Audit objective
 
@@ -25,11 +25,11 @@ The audit applies eight respondent-level quality checks:
 7. **Duplicate-like submissions** — repeated browser fingerprints combined with identical substantive answer patterns.
 8. **Low-quality open text** — blank, nonsensical, extremely short, numeric-only, or repetitive open-ended responses.
 
-The median duration among completed responses was **532.0 seconds**. The resulting speeder threshold was **177.3 seconds**.
+The median duration among completed responses was 532.0 seconds. The resulting speeder threshold was 177.3 seconds.
 
 ## Findings
 
-**272 responses (21.8%)** received at least one QC flag. Of these, **177** were recommended for manual review and **95** were recommended for exclusion under the pre-specified decision rules.
+272 responses (21.8%) received at least one QC flag. Of these, 177 were recommended for manual review and 95 were recommended for exclusion under the pre-specified decision rules.
 
 | QC check | Responses flagged | Share of all responses |
 |---|---:|---:|
@@ -63,8 +63,6 @@ The dashed line marks the data-derived speeder threshold used in the audit.
 This figure compares the number of responses identified by each QC rule.
 
 ## Project files
-
-Running `python analysis.py` creates or replaces the following files:
 
 - [`report.md`](report.md) — this report.
 - [`outputs/quality_flags.csv`](outputs/quality_flags.csv) — respondent-level QC indicators and recommendations.
