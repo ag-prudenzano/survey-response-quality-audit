@@ -531,11 +531,32 @@ def generate_report(
     exclude = int(flags["recommended_exclude"].sum())
 
     flag_rows = []
+    flag_counts = []
     for column in [c for c in flags.columns if c.startswith("flag_")]:
         label = column.removeprefix("flag_").replace("_", " ").title()
         count = int(flags[column].sum())
         percentage = (count / total * 100) if total else 0.0
         flag_rows.append(f"| {label} | {count:,} | {percentage:.1f}% |")
+        flag_counts.append((label, count))
+
+    narrative_labels = {
+        "Partial": "partial responses",
+        "Speeder": "speeding",
+        "Straightliner": "straight-lining",
+        "Attention Fail": "attention-check failure",
+        "Invalid Value": "invalid values",
+        "Logic Error": "logical inconsistencies",
+        "Duplicate Like": "duplicate-like submissions",
+        "Low Quality Open Text": "low-quality open text",
+    }
+    ranked_flags = sorted(flag_counts, key=lambda item: item[1], reverse=True)
+    top_three = ranked_flags[:3]
+    top_flag_summary = (
+        f"{narrative_labels.get(top_three[0][0], top_three[0][0]).capitalize()} was the most common "
+        f"individual flag ({top_three[0][1]:,} responses), followed by "
+        f"{narrative_labels.get(top_three[1][0], top_three[1][0])} ({top_three[1][1]:,}) and "
+        f"{narrative_labels.get(top_three[2][0], top_three[2][0])} ({top_three[2][1]:,})."
+    )
 
     report = f"""# Survey Response Quality Audit
 
@@ -578,6 +599,10 @@ The median duration among completed responses was {thresholds['median_complete_d
 
 {flagged:,} responses ({(flagged / total * 100 if total else 0):.1f}%) received at least one QC flag. Of these, {review:,} were recommended for manual review and {exclude:,} were recommended for exclusion under the pre-specified decision rules.
 
+| Flagged | Manual Review | Exclusion |
+|---:|---:|---:|
+| {flagged:,} | {review:,} | {exclude:,} |
+
 | QC check | Responses flagged | Share of all responses |
 |---|---:|---:|
 {chr(10).join(flag_rows)}
@@ -592,15 +617,15 @@ This keeps the decision rule auditable and avoids treating a single suspicious p
 
 ### Completion Duration
 
-![Survey completion duration](figures/completion_duration_distribution.png)
+![Histogram of completed survey durations with the speeder threshold](figures/completion_duration_distribution.png)
 
-The dashed line marks the data-derived speeder threshold used in the audit.
+Completed responses had a median duration of {thresholds['median_complete_duration_sec']:.1f} seconds. The audit classified completed responses below {thresholds['speeder_threshold_sec']:.1f} seconds as speeders; the dashed line marks this threshold.
 
 ### Quality Flags
 
-![Survey quality flags](figures/quality_flag_counts.png)
+![Horizontal bar chart of response counts for each survey quality flag](figures/quality_flag_counts.png)
 
-This figure compares the number of responses identified by each QC rule.
+{top_flag_summary} The Findings table above provides the exact count and share for every QC rule.
 
 ## Project Files
 
