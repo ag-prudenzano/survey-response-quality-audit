@@ -4,7 +4,7 @@
 
 | Project type | Dataset | Tools | Outputs |
 |---|---|---|---|
-| Simulated Quantitative Case Study | 1,250 Simulated UK Online Survey Responses | Python / Pandas / NumPy / Matplotlib | Respondent-Level QC Flags · Summary Diagnostics · Figures · Review/Exclusion Recommendations |
+| Simulated Quantitative Case Study | 1,250 Simulated UK Online Survey Responses | Python / Pandas / NumPy / Matplotlib | Respondent-Level QC Flags / Summary Diagnostics / Figures / Review/Exclusion Recommendations |
 
 **Skills demonstrated:** Survey Data Quality · Data Cleaning & Validation · Paradata Analysis · Survey Logic & Routing Checks · Simulated Fieldwork & Data-Collection QC · Duplicate Detection · Open-Text Quality Review · Reproducible Analysis · Data Visualisation
 
