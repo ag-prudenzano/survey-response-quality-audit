@@ -82,12 +82,12 @@ LOW_QUALITY_OPEN_TEXT = {
     "asdfgh",
 }
 
-FIGURE_BACKGROUND = "#000000"
-FIGURE_TEXT = "#f6f6f6"
-FIGURE_MUTED = "#a3a3a3"
-FIGURE_LINE = "#393939"
-FIGURE_BAR = "#686868"
-FIGURE_ACCENT = "#64d2ff"
+FIGURE_BACKGROUND = "#0C0C0D"
+FIGURE_TEXT = "#FFFFFF"
+FIGURE_MUTED = "#A2A2A9"
+FIGURE_LINE = "#313135"
+FIGURE_BAR = "#494950"
+FIGURE_ACCENT = "#FFFFFF"
 
 
 def run_git(*args: str) -> subprocess.CompletedProcess[str]:
@@ -464,6 +464,7 @@ def create_figures(df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, 
             pad=18,
             fontsize=16,
             fontweight=400,
+            color=FIGURE_TEXT,
         )
         ax.set_xlabel("Duration (seconds)", labelpad=12)
         ax.set_ylabel("Completed responses", labelpad=12)
@@ -496,6 +497,7 @@ def create_figures(df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, 
             pad=18,
             fontsize=16,
             fontweight=400,
+            color=FIGURE_TEXT,
         )
         ax.set_xlabel("Responses flagged", labelpad=12)
         ax.set_ylabel("")
