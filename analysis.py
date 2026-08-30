@@ -82,11 +82,12 @@ LOW_QUALITY_OPEN_TEXT = {
     "asdfgh",
 }
 
-FIGURE_BACKGROUND = "#0C0C0D"
+FIGURE_BACKGROUND = "#000000"
 FIGURE_TEXT = "#FFFFFF"
-FIGURE_MUTED = "#A2A2A9"
-FIGURE_LINE = "#313135"
-FIGURE_BAR = "#5D5D65"
+FIGURE_MUTED = "#B3B3B3"
+FIGURE_BAR = "#666666"
+FIGURE_EDGE = "#404040"
+FIGURE_LINE = "#333333"
 FIGURE_ACCENT = "#FFFFFF"
 
 
@@ -431,7 +432,7 @@ def style_figure_axis(ax: plt.Axes, grid_axis: str) -> None:
     ax.title.set_color(FIGURE_TEXT)
     for spine in ax.spines.values():
         spine.set_visible(False)
-    ax.grid(axis=grid_axis, color=FIGURE_LINE, linewidth=0.8, alpha=0.6)
+    ax.grid(axis=grid_axis, color=FIGURE_LINE, linewidth=0.8)
     ax.set_axisbelow(True)
 
 
@@ -448,7 +449,7 @@ def create_figures(df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, 
             completed,
             bins=35,
             color=FIGURE_BAR,
-            edgecolor=FIGURE_BACKGROUND,
+            edgecolor=FIGURE_EDGE,
             linewidth=0.7,
         )
         ax.axvline(
@@ -488,7 +489,14 @@ def create_figures(df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, 
 
         fig, ax = plt.subplots(figsize=(9.6, 5.6))
         style_figure_axis(ax, "x")
-        bars = ax.barh(labels, counts.values, height=0.58, color=FIGURE_BAR)
+        bars = ax.barh(
+            labels,
+            counts.values,
+            height=0.58,
+            color=FIGURE_BAR,
+            edgecolor=FIGURE_EDGE,
+            linewidth=0.7,
+        )
         maximum = max(float(counts.max()), 1.0)
         ax.set_xlim(0, maximum * 1.16)
         ax.set_title(
