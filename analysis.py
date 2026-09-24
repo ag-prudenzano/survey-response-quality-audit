@@ -1,4 +1,5 @@
 from pathlib import Path
+from io import BytesIO
 import re
 import subprocess
 
@@ -82,13 +83,72 @@ LOW_QUALITY_OPEN_TEXT = {
     "asdfgh",
 }
 
-FIGURE_BACKGROUND = "#000000"
+FIGURE_BACKGROUND = "#0F0F0F"
 FIGURE_TEXT = "#FFFFFF"
 FIGURE_MUTED = "#B3B3B3"
 FIGURE_BAR = "#666666"
 FIGURE_EDGE = "#404040"
 FIGURE_LINE = "#333333"
 FIGURE_ACCENT = "#FFFFFF"
+
+FIGURE_PADDING_PX = 30
+FIGURE_CORNER_RADIUS_PX = 38
+
+
+def save_rounded_figure(fig, path, dpi=200):
+    """Save a chart on a rounded #0F0F0F container with a 30 px inset."""
+    buffer = BytesIO()
+    fig.savefig(
+        buffer,
+        format="png",
+        dpi=dpi,
+        facecolor=FIGURE_BACKGROUND,
+        bbox_inches="tight",
+        pad_inches=0,
+    )
+    buffer.seek(0)
+    image = plt.imread(buffer)
+    if image.shape[-1] == 3:
+        image = np.dstack(
+            [image, np.ones(image.shape[:2], dtype=image.dtype)]
+        )
+
+    height, width = image.shape[:2]
+    padding = FIGURE_PADDING_PX
+    background_rgb = np.array(
+        [int(FIGURE_BACKGROUND[i : i + 2], 16) / 255 for i in (1, 3, 5)],
+        dtype=np.float32,
+    )
+    canvas = np.empty(
+        (height + 2 * padding, width + 2 * padding, 4),
+        dtype=np.float32,
+    )
+    canvas[..., :3] = background_rgb
+    canvas[..., 3] = 1.0
+    canvas[padding : padding + height, padding : padding + width] = image
+
+    canvas_height, canvas_width = canvas.shape[:2]
+    radius = min(
+        FIGURE_CORNER_RADIUS_PX,
+        canvas_height // 2,
+        canvas_width // 2,
+    )
+    y, x = np.ogrid[:canvas_height, :canvas_width]
+    edge_x = np.minimum(x, canvas_width - 1 - x)
+    edge_y = np.minimum(y, canvas_height - 1 - y)
+    corner = (edge_x < radius) & (edge_y < radius)
+    distance = np.sqrt(
+        (radius - 0.5 - edge_x) ** 2
+        + (radius - 0.5 - edge_y) ** 2
+    )
+    alpha = np.ones((canvas_height, canvas_width), dtype=np.float32)
+    alpha[corner] = np.clip(
+        radius + 0.5 - distance[corner],
+        0,
+        1,
+    )
+    canvas[..., 3] *= alpha
+    plt.imsave(path, np.clip(canvas, 0, 1))
 
 
 def run_git(*args: str) -> subprocess.CompletedProcess[str]:
@@ -473,10 +533,10 @@ def create_figures(df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, 
         for text in legend.get_texts():
             text.set_color(FIGURE_MUTED)
         fig.tight_layout(pad=1.6)
-        fig.savefig(
+        save_rounded_figure(
+            fig,
             FIGURE_DIR / "completion_duration_distribution.png",
             dpi=200,
-            facecolor=FIGURE_BACKGROUND,
         )
         plt.close(fig)
 
@@ -520,10 +580,10 @@ def create_figures(df: pd.DataFrame, flags: pd.DataFrame, thresholds: dict[str, 
                 fontsize=9.5,
             )
         fig.tight_layout(pad=1.6)
-        fig.savefig(
+        save_rounded_figure(
+            fig,
             FIGURE_DIR / "quality_flag_counts.png",
             dpi=200,
-            facecolor=FIGURE_BACKGROUND,
         )
         plt.close(fig)
 
