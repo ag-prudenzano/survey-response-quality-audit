@@ -7,6 +7,7 @@ try:
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
+    from PIL import Image
 except ImportError as exc:
     raise SystemExit(
         "Missing Python packages. Install pandas, numpy and matplotlib, then run "
@@ -93,10 +94,12 @@ FIGURE_ACCENT = "#FFFFFF"
 
 FIGURE_PADDING_PX = 60
 FIGURE_CORNER_RADIUS_PX = 38
+FIGURE_CANVAS_WIDTH_PX = 1920
+FIGURE_CANVAS_HEIGHT_PX = 1080
 
 
 def save_rounded_figure(fig, path, dpi=200):
-    """Save a chart on a rounded #0F0F0F container with a 30 px inset."""
+    """Save a chart on a fixed 1920 x 1080 rounded dark container."""
     buffer = BytesIO()
     fig.savefig(
         buffer,
@@ -107,25 +110,46 @@ def save_rounded_figure(fig, path, dpi=200):
         pad_inches=0,
     )
     buffer.seek(0)
-    image = plt.imread(buffer)
-    if image.shape[-1] == 3:
-        image = np.dstack(
-            [image, np.ones(image.shape[:2], dtype=image.dtype)]
+    rendered = plt.imread(buffer)
+    if rendered.shape[-1] == 3:
+        rendered = np.dstack(
+            [rendered, np.ones(rendered.shape[:2], dtype=rendered.dtype)]
         )
 
-    height, width = image.shape[:2]
-    padding = FIGURE_PADDING_PX
+    rendered_height, rendered_width = rendered.shape[:2]
+    available_width = FIGURE_CANVAS_WIDTH_PX - 2 * FIGURE_PADDING_PX
+    available_height = FIGURE_CANVAS_HEIGHT_PX - 2 * FIGURE_PADDING_PX
+    scale = min(
+        available_width / rendered_width,
+        available_height / rendered_height,
+    )
+    scaled_width = max(1, round(rendered_width * scale))
+    scaled_height = max(1, round(rendered_height * scale))
+    rendered_image = Image.fromarray(
+        np.clip(rendered * 255, 0, 255).astype(np.uint8),
+        mode="RGBA",
+    ).resize(
+        (scaled_width, scaled_height),
+        Image.Resampling.LANCZOS,
+    )
+    rendered = np.asarray(rendered_image, dtype=np.float32) / 255
+
     background_rgb = np.array(
         [int(FIGURE_BACKGROUND[i : i + 2], 16) / 255 for i in (1, 3, 5)],
         dtype=np.float32,
     )
     canvas = np.empty(
-        (height + 2 * padding, width + 2 * padding, 4),
+        (FIGURE_CANVAS_HEIGHT_PX, FIGURE_CANVAS_WIDTH_PX, 4),
         dtype=np.float32,
     )
     canvas[..., :3] = background_rgb
     canvas[..., 3] = 1.0
-    canvas[padding : padding + height, padding : padding + width] = image
+    offset_x = (FIGURE_CANVAS_WIDTH_PX - scaled_width) // 2
+    offset_y = (FIGURE_CANVAS_HEIGHT_PX - scaled_height) // 2
+    canvas[
+        offset_y : offset_y + scaled_height,
+        offset_x : offset_x + scaled_width,
+    ] = rendered
 
     canvas_height, canvas_width = canvas.shape[:2]
     radius = min(
